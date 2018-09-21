@@ -1,0 +1,30 @@
+{
+  "name": "eth_mm",
+  "version": "1.0.0",
+  "description": "## Preface",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mxn/eth_mm.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mxn/eth_mm/issues"
+  },
+  "homepage": "https://github.com/mxn/eth_mm#readme",
+  "dependencies": {
+    "zeppelin-solidity": "1.6.0"
+  },
+  "devDependencies": {
+    "dotenv": "^6.0.0",
+    "truffle-hdwallet-provider": "0.0.5"
+  }
+}
