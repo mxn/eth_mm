@@ -4,6 +4,7 @@ const MockTokenAsset = artifacts.require('MockTokenAsset')
 const Exchange = artifacts.require('Exchange')
 
 
+
 const deployer = '0x627306090abab3a6e1400e9345bc60c78a8bef57'
 /* const writer1 = '0xf17f52151ebef6c7334fad080c5704d77216b732'
 const buyer2 = '0xc5fdf4076b8f3a5357c5e395ab970b5b54098fef'
@@ -24,6 +25,13 @@ if (typeof web3 !== 'undefined') {
 }
 
 contract ("Tokens:", async  () =>  {
-  it ("it should be run", () => {})
+  it ("should transfer token to Exchange contract", async () => {
+    let transferAmount = 10000
+    let asset = await MockTokenAsset.deployed()
+    let exchange = await Exchange.deployed()
+    await asset.transfer(exchange.address, transferAmount, {from: deployer})
+    let balance = await asset.balanceOf(exchange.address)
+    assert.equal(transferAmount, balance.toNumber())
+  })
 })
 
