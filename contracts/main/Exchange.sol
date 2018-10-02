@@ -35,12 +35,12 @@ contract Exchange is Ownable, BancorFormula {
             _assetAmountToSell).mul(MAX_PPM.sub(fractionInPpm)).div(MAX_PPM);
     } 
 
-    function getBasisAmountToPut(uint _assetAmountToSell) public view returns(uint) {
+    function getBasisAmountToPut(uint _assetAmountToGet) public view returns(uint) {
         // function calculateCrossConnectorReturn(uint256 _fromConnectorBalance, uint32 _fromConnectorWeight, 
         // uint256 _toConnectorBalance, uint32 _toConnectorWeight, uint256 _amount) public view returns (uint256);
         return calculateCrossConnectorReturn(asset.balanceOf(this), weightAsset,
             basis.balanceOf(this), weightBasis, 
-            _assetAmountToSell).mul(MAX_PPM.add(fractionInPpm)).div(MAX_PPM);
+            _assetAmountToGet).mul(MAX_PPM.add(fractionInPpm)).div(MAX_PPM);
     } 
 
     function getAssetAmountToGet(uint _basisAmountToPut) public view returns(uint) {
