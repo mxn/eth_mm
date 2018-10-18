@@ -69,13 +69,13 @@ contract ("Tokens:", async  () =>  {
   })
 
   it ("ask price should be OK", async () => {
-    let amount = await exchange.getBasisAmountToPut(100)
+    let amount = await exchange.getBasisAmountToPut(1000)
     //assert.ok()
     console.log("amount to put", amount.toNumber())
   })
 
   it ("bid price should be OK", async () => {
-    let amount = await exchange.getBasisAmountToGet(100)
+    let amount = await exchange.getBasisAmountToGet(1000)
     console.log("amount to get", amount.toNumber())
   })
 
