@@ -1,6 +1,6 @@
 pragma solidity ^0.4.23;
 
-import './bancor/converter/BancorFormula.sol';
+import './IExchangeCalculator.sol';
 import './WithdrawableByOwner.sol';
 
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
@@ -26,10 +26,11 @@ contract Exchange is Ownable, BancorFormula {
     uint32 public fractionInBpp; //fraction in basis points: % of %
 
     WithdrawableByOwner public feeTaker;
+    IExchangeCalculator public exchangeCalculator;
 
 
     
-    constructor (address _basis, uint32 _weightBasis, address _asset, uint32 _weightAsset, uint32 _fractionInBpp) public
+    constructor (address _basis, uint32 _weightBasis, address _asset, uint32 _weightAsset, uint32 _fractionInBpp, address _exchangeCalculator) public
     Ownable()
     {
         basis = ERC20(_basis);
@@ -40,6 +41,7 @@ contract Exchange is Ownable, BancorFormula {
         WithdrawableByOwner feeTakerInstance = new WithdrawableByOwner(_basis);
         feeTakerInstance.transferOwnership(msg.sender);
         feeTaker = feeTakerInstance;
+        exchangeCalculator = IExchangeCalculator(_exchangeCalculator);
     }
 
     function getBasisAmountToGet(uint _assetAmountToSell) public view returns(uint) {
@@ -59,11 +61,11 @@ contract Exchange is Ownable, BancorFormula {
     function getBasisAmountAndFee(uint _assetAmount, bool _putAsset) public view returns (uint, uint) {
         uint basisAmount;//TODO dumb code
         if (_putAsset) {
-            basisAmount = calculateBasisAmountToGet(asset.balanceOf(this), weightAsset,
+            basisAmount = exchangeCalculator.calculateBasisAmountToGet(asset.balanceOf(this), weightAsset,
             basis.balanceOf(this), weightBasis, 
             _assetAmount);
         } else {
-            basisAmount = calculateBasisAmountToPut(asset.balanceOf(this), weightAsset,
+            basisAmount = exchangeCalculator.calculateBasisAmountToPut(asset.balanceOf(this), weightAsset,
             basis.balanceOf(this), weightBasis, 
             _assetAmount);
         }
@@ -71,29 +73,6 @@ contract Exchange is Ownable, BancorFormula {
         fee = fee == 0 ? 1 : fee;
         return (basisAmount, fee);
     }
-
-    function calculateBasisAmountToPut(uint256 _balanceBasis, uint32 _weightBasis, uint256
-         _balanceAsset, uint32 _weightAsset, uint256 _amountAssetToGet) public view returns (uint256) {
-       uint newBalanceAsset = _balanceAsset.sub(_amountAssetToGet);
-       uint powerResult;
-       uint precision;
-       (powerResult, precision) = power (_balanceAsset, newBalanceAsset, _weightAsset, _weightBasis);
-       uint newBalanceBasisAux = _balanceBasis.mul(powerResult);
-       uint newBalanceBasis = newBalanceBasisAux >> precision;
-       return newBalanceBasis.sub(_balanceBasis);
-    }
-
-    function calculateBasisAmountToGet(uint256 _balanceBasis, uint32 _weightBasis, uint256
-         _balanceAsset, uint32 _weightAsset, uint256 _amountAssetToPut) public view returns (uint256) {
-        uint newBalanceAsset = _balanceAsset.add(_amountAssetToPut);
-       uint powerResult;
-       uint precision;
-       (powerResult, precision) = power (newBalanceAsset, _balanceAsset, _weightAsset, _weightBasis);
-       uint newBalanceBasisAux = _balanceBasis.mul(powerResult);
-       uint newBalanceBasis = newBalanceBasisAux >> precision;
-       return newBalanceBasis.sub(_balanceBasis);    
-    }
-
     
     function sellAsset(uint _assetAmountToPut, uint _minBasisAmountToGet) public {
         uint basisAmount;
