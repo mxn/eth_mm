@@ -25,13 +25,60 @@ if (typeof web3 !== 'undefined') {
 }
 
 contract ("Tokens:", async  () =>  {
-  it ("should transfer token to Exchange contract", async () => {
-    let transferAmount = 10000
-    let asset = await MockTokenAsset.deployed()
-    let exchange = await Exchange.deployed()
-    await asset.transfer(exchange.address, transferAmount, {from: deployer})
-    let balance = await asset.balanceOf(exchange.address)
-    assert.equal(transferAmount, balance.toNumber())
+  const transferAmountAsset = 100000
+  const transferAmountBasis = 1000000
+  var exchange, asset, basis
+
+  it("contracts should be correctly initialized", async () => {
+    asset = await MockTokenAsset.deployed()
+    exchange = await Exchange.deployed()
+    basis = await MockTokenBasis.deployed()
+    assert.ok(true, "the last line is not reached: init is not OK")
   })
+
+  it ("should transfer asset token to Exchange contract", async () => {
+    await asset.transfer(exchange.address, transferAmountAsset, {from: deployer})
+    let balance = await asset.balanceOf(exchange.address)
+    assert.equal(transferAmountAsset, balance.toNumber())
+  })
+
+  it ("should transfer basis token to Exchange contract", async () => {
+    await basis.transfer(exchange.address, transferAmountBasis, {from: deployer})
+    let balance = await basis.balanceOf(exchange.address)
+    assert.equal(transferAmountBasis, balance.toNumber())
+  })
+
+  it("test calculateBasisAmountToPut", async() => {
+    let  assetAmountToGet = 20000
+    let basisAmountToPut = await exchange.calculateBasisAmountToPut(100000, 20, 
+      50000, 1, assetAmountToGet);
+    console.log("BasisAmountToPut", basisAmountToPut.toNumber())
+    console.log("price per 1", basisAmountToPut.toNumber() / assetAmountToGet)
+    
+  })
+
+  it("test calculateBasisAmountToGet", async() => {
+    let  assetAmountToPut = 20000
+    let basisAmountToGet = await exchange.calculateBasisAmountToGet(100000, 20, 
+      50000, 1, assetAmountToPut);
+    console.log("BasisAmountToGet", basisAmountToGet.toNumber())
+    console.log("price per 1", basisAmountToGet.toNumber() / assetAmountToPut)
+    
+  })
+
+  it ("ask price should be OK", async () => {
+    let amount = await exchange.getBasisAmountToPut(100)
+    //assert.ok()
+    console.log("amount to put", amount.toNumber())
+  })
+
+  it ("bid price should be OK", async () => {
+    let amount = await exchange.getBasisAmountToGet(100)
+    console.log("amount to get", amount.toNumber())
+  })
+
+  
+
+
 })
 

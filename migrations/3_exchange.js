@@ -6,5 +6,5 @@ const MockTokenAsset = artifacts.require("MockTokenAsset")
 
 module.exports = function(deployer, network) {
   //deployer.deploy(Ba)
-  deployer.deploy(Exchange, MockTokenBasis.address, MockTokenAsset.address, 100)
+  deployer.deploy(Exchange, MockTokenBasis.address, 200, MockTokenAsset.address, 10, 100)
 }
