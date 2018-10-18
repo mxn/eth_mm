@@ -7,6 +7,7 @@ const ExchangeCalculator = artifacts.require('ExchangeCalculator')
 
 
 const deployer = '0x627306090abab3a6e1400e9345bc60c78a8bef57'
+const trader = '0xf17f52151ebef6c7334fad080c5704d77216b732'
 /* const writer1 = '0xf17f52151ebef6c7334fad080c5704d77216b732'
 const buyer2 = '0xc5fdf4076b8f3a5357c5e395ab970b5b54098fef'
 const optionSerieCreator = '0x0d1d4e623d10f9fba5db95830f7d3839406c6af2'
@@ -79,7 +80,34 @@ contract ("Tokens:", async  () =>  {
     console.log("amount to get", amount.toNumber())
   })
 
+  it ("transfer basis to trader should be OK", async  () => {
+    await basis.transfer(trader, transferAmountBasis, {from: deployer})
+    let balance = await basis.balanceOf(trader)
+    assert.equal(transferAmountBasis, balance.toNumber())
   
+  })
+
+  it ("trader can buy asset", async  () => {
+    let amountAssetToBuy = 1000
+    await basis.approve(exchange.address, 10000000000, {from: trader})
+    let basisAmountAndFee = await exchange.getBasisAmountAndFee(amountAssetToBuy, false)
+    console.log("amount: ", basisAmountAndFee[0].toNumber() )
+    console.log("fee: ", basisAmountAndFee[1].toNumber() )
+    await exchange.buyAsset(amountAssetToBuy, 100000000, {from: trader})
+    let balance = await asset.balanceOf(trader)
+    assert.equal(amountAssetToBuy, balance.toNumber())
+  })
+
+  it ("trader can sell asset", async  () => {
+    let amountAssetToBuy = 1000
+    await asset.approve(exchange.address, 10000000000, {from: trader})
+    let basisAmountAndFee = await exchange.getBasisAmountAndFee(amountAssetToBuy, true)
+    console.log("amount: ", basisAmountAndFee[0].toNumber() )
+    console.log("fee: ", basisAmountAndFee[1].toNumber() )
+    await exchange.sellAsset(amountAssetToBuy, 1, {from: trader})
+    let balance = await asset.balanceOf(trader)
+    assert.equal(0, balance.toNumber())
+  })
 
 
 })

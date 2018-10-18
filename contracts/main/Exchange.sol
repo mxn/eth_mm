@@ -94,8 +94,8 @@ contract Exchange is Ownable, BancorFormula {
         require(basisAmount > 0);
         uint calcBasisAmount = basisAmount.add(fee);
         require(calcBasisAmount <= _maxBasisAmountToPut);
-        asset.safeTransferFrom(msg.sender, this, calcBasisAmount);
-        basis.safeTransfer(msg.sender, _assetAmountToGet);
+        basis.safeTransferFrom(msg.sender, this, calcBasisAmount);
+        asset.safeTransfer(msg.sender, _assetAmountToGet);
         basis.safeTransfer(address(feeTaker), fee);
     }
 
