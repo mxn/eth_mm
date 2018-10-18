@@ -2,6 +2,7 @@
 const MockTokenBasis = artifacts.require('MockTokenBasis')
 const MockTokenAsset = artifacts.require('MockTokenAsset')
 const Exchange = artifacts.require('Exchange')
+const ExchangeCalculator = artifacts.require('ExchangeCalculator')
 
 
 
@@ -27,12 +28,13 @@ if (typeof web3 !== 'undefined') {
 contract ("Tokens:", async  () =>  {
   const transferAmountAsset = 100000
   const transferAmountBasis = 1000000
-  var exchange, asset, basis
+  var exchange, asset, basis, exchangeCalculator
 
   it("contracts should be correctly initialized", async () => {
     asset = await MockTokenAsset.deployed()
     exchange = await Exchange.deployed()
     basis = await MockTokenBasis.deployed()
+    exchangeCalculator = await ExchangeCalculator.deployed()
     assert.ok(true, "the last line is not reached: init is not OK")
   })
 
@@ -50,7 +52,7 @@ contract ("Tokens:", async  () =>  {
 
   it("test calculateBasisAmountToPut", async() => {
     let  assetAmountToGet = 20000
-    let basisAmountToPut = await exchange.calculateBasisAmountToPut(100000, 20, 
+    let basisAmountToPut = await exchangeCalculator.calculateBasisAmountToPut(100000, 20, 
       50000, 1, assetAmountToGet);
     console.log("BasisAmountToPut", basisAmountToPut.toNumber())
     console.log("price per 1", basisAmountToPut.toNumber() / assetAmountToGet)
@@ -59,7 +61,7 @@ contract ("Tokens:", async  () =>  {
 
   it("test calculateBasisAmountToGet", async() => {
     let  assetAmountToPut = 20000
-    let basisAmountToGet = await exchange.calculateBasisAmountToGet(100000, 20, 
+    let basisAmountToGet = await exchangeCalculator.calculateBasisAmountToGet(100000, 20, 
       50000, 1, assetAmountToPut);
     console.log("BasisAmountToGet", basisAmountToGet.toNumber())
     console.log("price per 1", basisAmountToGet.toNumber() / assetAmountToPut)
