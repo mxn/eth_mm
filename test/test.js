@@ -87,26 +87,82 @@ contract ("Tokens:", async  () =>  {
   
   })
 
+  it ("revert by buy asset if exchange price is more than limit price", async  () => {
+    try {
+      await basis.approve(exchange.address, 10000000000, {from: trader})
+      await exchange.buyAsset(amountAssetToBuy, 1, {from: trader})
+      assert.ok(false, "should not be there")
+    } catch(e) {
+      //NOP
+    }
+  })
+
   it ("trader can buy asset", async  () => {
     let amountAssetToBuy = 1000
     await basis.approve(exchange.address, 10000000000, {from: trader})
     let basisAmountAndFee = await exchange.getBasisAmountAndFee(amountAssetToBuy, false)
     console.log("amount: ", basisAmountAndFee[0].toNumber() )
     console.log("fee: ", basisAmountAndFee[1].toNumber() )
+    let startAssetBalance = await asset.balanceOf(trader)
+    let startBasisBalanceTrader = await basis.balanceOf(trader)
+    let startBasisBalanceExchangeAddress = await basis.balanceOf(exchange.address)
+    let startBasisBalanceExchange = await exchange.getExchangeBasisBalance()
+    let startFee = await exchange.collectedFeesInBasis()
+    
     await exchange.buyAsset(amountAssetToBuy, 100000000, {from: trader})
-    let balance = await asset.balanceOf(trader)
-    assert.equal(amountAssetToBuy, balance.toNumber())
+    let endAssetBalance = await asset.balanceOf(trader)
+    let endBasisBalanceTrader = await basis.balanceOf(trader)
+    let endBasisBalanceExchangeAddress = await basis.balanceOf(exchange.address)
+    let endBasisBalanceExchange = await exchange.getExchangeBasisBalance()
+    let endFee = await exchange.collectedFeesInBasis()
+    assert.equal(amountAssetToBuy, endAssetBalance.sub(startAssetBalance).toNumber(), 
+      "amount asset to buy is equal to delta balances of trader")
+    assert.equal(startBasisBalanceTrader.sub(endBasisBalanceTrader).toNumber(), 
+      endBasisBalanceExchangeAddress.sub(startBasisBalanceExchangeAddress).toNumber(), 
+      "income in basis for exchange is equal to outcome in basis of trader ")
+    assert.equal(endFee.sub(startFee).add(endBasisBalanceExchange.sub(startBasisBalanceExchange)).toNumber(), 
+      endBasisBalanceExchangeAddress.sub(startBasisBalanceExchangeAddress).toNumber(),
+      "change in contract exchange balance equals to fee + exchange balance"
+      )
+  })
+
+  it ("revert by sell asset if exchange price is less than limit price", async  () => {
+    try {
+      await asset.approve(exchange.address, 10000000000, {from: trader})
+      await exchange.sellAsset(amountAssetToBuy, 10000000000, {from: trader})
+      assert.ok(false, "should not be there")
+    } catch(e) {
+      //NOP
+    }
   })
 
   it ("trader can sell asset", async  () => {
-    let amountAssetToBuy = 1000
+    let amountAsset = 1000
     await asset.approve(exchange.address, 10000000000, {from: trader})
-    let basisAmountAndFee = await exchange.getBasisAmountAndFee(amountAssetToBuy, true)
+    let basisAmountAndFee = await exchange.getBasisAmountAndFee(amountAsset, true)
     console.log("amount: ", basisAmountAndFee[0].toNumber() )
     console.log("fee: ", basisAmountAndFee[1].toNumber() )
-    await exchange.sellAsset(amountAssetToBuy, 1, {from: trader})
-    let balance = await asset.balanceOf(trader)
-    assert.equal(0, balance.toNumber())
+    let startAssetBalance = await asset.balanceOf(trader)
+    let startBasisBalanceTrader = await basis.balanceOf(trader)
+    let startBasisBalanceExchangeAddress = await basis.balanceOf(exchange.address)
+    let startBasisBalanceExchange = await exchange.getExchangeBasisBalance()
+    let startFee = await exchange.collectedFeesInBasis()
+    
+    await exchange.sellAsset(amountAsset, 1, {from: trader})
+    let endAssetBalance = await asset.balanceOf(trader)
+    let endBasisBalanceTrader = await basis.balanceOf(trader)
+    let endBasisBalanceExchangeAddress = await basis.balanceOf(exchange.address)
+    let endBasisBalanceExchange = await exchange.getExchangeBasisBalance()
+    let endFee = await exchange.collectedFeesInBasis()
+    assert.equal(amountAsset, startAssetBalance.sub(endAssetBalance).toNumber(), 
+    "amount asset to sell is equal to delta balances of trader")
+    assert.equal(endBasisBalanceTrader.sub(startBasisBalanceTrader).toNumber(), 
+    startBasisBalanceExchangeAddress.sub(endBasisBalanceExchangeAddress).toNumber(), 
+    "outcome in basis for exchange is equal to income in basis of trader ")
+    assert.equal(startBasisBalanceExchange.sub(endBasisBalanceExchange).sub(endFee.sub(startFee)).toNumber(), 
+    startBasisBalanceExchangeAddress.sub(endBasisBalanceExchangeAddress).toNumber(),
+    "change in contract exchange balance equals to fee + exchange balance")
+    console.log("fee collected", endFee.toNumber())
   })
 
 

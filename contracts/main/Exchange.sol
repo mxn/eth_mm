@@ -25,8 +25,9 @@ contract Exchange is Ownable, BancorFormula {
     uint32 public constant MAX_BPP = 10000;
     uint32 public fractionInBpp; //fraction in basis points: % of %
 
-    WithdrawableByOwner public feeTaker;
+    //WithdrawableByOwner public feeTaker;
     IExchangeCalculator public exchangeCalculator;
+    uint public collectedFeesInBasis; 
 
 
     
@@ -38,9 +39,6 @@ contract Exchange is Ownable, BancorFormula {
         weightBasis = _weightBasis;
         weightAsset = _weightAsset;
         fractionInBpp = _fractionInBpp;
-        WithdrawableByOwner feeTakerInstance = new WithdrawableByOwner(_basis);
-        feeTakerInstance.transferOwnership(msg.sender);
-        feeTaker = feeTakerInstance;
         exchangeCalculator = IExchangeCalculator(_exchangeCalculator);
     }
 
@@ -59,19 +57,23 @@ contract Exchange is Ownable, BancorFormula {
     } 
 
     function getBasisAmountAndFee(uint _assetAmount, bool _putAsset) public view returns (uint, uint) {
-        uint basisAmount;//TODO dumb code
+        uint basisAmount;
         if (_putAsset) {
             basisAmount = exchangeCalculator.calculateBasisAmountToGet(asset.balanceOf(this), weightAsset,
-            basis.balanceOf(this), weightBasis, 
+            getExchangeBasisBalance(), weightBasis, 
             _assetAmount);
         } else {
             basisAmount = exchangeCalculator.calculateBasisAmountToPut(asset.balanceOf(this), weightAsset,
-            basis.balanceOf(this), weightBasis, 
+            getExchangeBasisBalance(), weightBasis, 
             _assetAmount);
         }
         uint fee = basisAmount.mul(fractionInBpp).div(MAX_BPP);
         fee = fee == 0 ? 1 : fee;
         return (basisAmount, fee);
+    }
+
+    function getExchangeBasisBalance() public view returns (uint) {
+        return basis.balanceOf(this).sub(collectedFeesInBasis);
     }
     
     function sellAsset(uint _assetAmountToPut, uint _minBasisAmountToGet) public {
@@ -83,9 +85,8 @@ contract Exchange is Ownable, BancorFormula {
         require(calcBasisAmount >= _minBasisAmountToGet);
         asset.safeTransferFrom(msg.sender, this, _assetAmountToPut);
         basis.safeTransfer(msg.sender, calcBasisAmount);
-        basis.safeTransfer(address(feeTaker), fee);
+        collectedFeesInBasis = collectedFeesInBasis.add(fee);
     }
-
     
     function buyAsset(uint _assetAmountToGet, uint _maxBasisAmountToPut) public {
         uint basisAmount;
@@ -96,7 +97,7 @@ contract Exchange is Ownable, BancorFormula {
         require(calcBasisAmount <= _maxBasisAmountToPut);
         basis.safeTransferFrom(msg.sender, this, calcBasisAmount);
         asset.safeTransfer(msg.sender, _assetAmountToGet);
-        basis.safeTransfer(address(feeTaker), fee);
+        collectedFeesInBasis = collectedFeesInBasis.add(fee);
     }
 
 }
