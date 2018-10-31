@@ -1,7 +1,7 @@
 //const OptionPair = artifacts.require('TokenOption') // for live
 const MockTokenBasis = artifacts.require('MockTokenBasis')
 const MockTokenAsset = artifacts.require('MockTokenAsset')
-const Exchange = artifacts.require('Exchange')
+const Exchange = artifacts.require('MockExchange')
 const ExchangeCalculator = artifacts.require('ExchangeCalculator')
 
 

@@ -1,7 +1,7 @@
 pragma solidity ^0.4.23;
 
 import './IExchangeCalculator.sol';
-import './WithdrawableByOwner.sol';
+import './WithdrawableByOwnerTimeLocked.sol';
 
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
@@ -9,7 +9,7 @@ import 'zeppelin-solidity/contracts/token/ERC20/ERC20.sol';
 import "zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 
 
-contract Exchange is Ownable, BancorFormula {
+contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
     using SafeMath for uint;
     using SafeMath for uint32;
     using SafeERC20 for ERC20;
@@ -29,10 +29,12 @@ contract Exchange is Ownable, BancorFormula {
     IExchangeCalculator public exchangeCalculator;
     uint public collectedFeesInBasis; 
 
+    
 
     
-    constructor (address _basis, uint32 _weightBasis, address _asset, uint32 _weightAsset, uint32 _fractionInBpp, address _exchangeCalculator) public
+    constructor (address _basis, uint32 _weightBasis, address _asset, uint32 _weightAsset, uint32 _fractionInBpp, address _exchangeCalculator, uint _releaseTime) public
     Ownable()
+    WithdrawableByOwnerTimeLocked(_basis, _releaseTime)
     {
         basis = ERC20(_basis);
         asset = ERC20(_asset);
