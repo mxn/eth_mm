@@ -165,6 +165,29 @@ contract ("Tokens:", async  () =>  {
     console.log("fee collected", endFee.toNumber())
   })
 
+  it ("cannot withdraw before expire date", async () => {
+    let ownerOfExchange = await exchange.owner()
+    assert.equal(ownerOfExchange, deployer) 
+    let lockExpireTime = await exchange.lockExpireTime()
+    let curTime = await exchange.getCurrentTime()
+    assert.isBelow(curTime.toNumber(), lockExpireTime.toNumber())
+    try {
+      await exchange.withdrawAll({from: ownerOfExchange})
+      assert.ok(false)
+    } catch (e) {
+      //NOP
+      console.log("error")
+      assert.ok(true)
+    }
+  })
 
+    it ("can withdraw after expire date", async () => {
+      let ownerOfExchange = await exchange.owner()
+      assert.equal(ownerOfExchange, deployer) 
+      let releaseDate = await exchange.lockExpireTime()
+      let mockedCurTime = releaseDate.toNumber() + 1
+      await exchange.setCurrentTime(mockedCurTime)
+      await exchange.withdrawAll({from: ownerOfExchange})
+      assert.ok(true)
+    })
 })
-

@@ -34,7 +34,7 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
     
     constructor (address _basis, uint32 _weightBasis, address _asset, uint32 _weightAsset, uint32 _fractionInBpp, address _exchangeCalculator, uint _releaseTime) public
     Ownable()
-    WithdrawableByOwnerTimeLocked(_basis, _releaseTime)
+    WithdrawableByOwnerTimeLocked(_basis, _asset, _releaseTime)
     {
         basis = ERC20(_basis);
         asset = ERC20(_asset);
