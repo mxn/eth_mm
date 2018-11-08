@@ -176,7 +176,6 @@ contract ("Tokens:", async  () =>  {
       assert.ok(false)
     } catch (e) {
       //NOP
-      console.log("error")
       assert.ok(true)
     }
   })
@@ -187,7 +186,20 @@ contract ("Tokens:", async  () =>  {
       let releaseDate = await exchange.lockExpireTime()
       let mockedCurTime = releaseDate.toNumber() + 1
       await exchange.setCurrentTime(mockedCurTime)
+      let startAssetBalanceOwner = await asset.balanceOf(ownerOfExchange)
+      let startBasisBalanceOwner = await basis.balanceOf(ownerOfExchange)
+      let startBasisBalanceExchangeAddress = await basis.balanceOf(exchange.address)
+      let startAssetBalanceExchangeAddress = await asset.balanceOf(exchange.address)
       await exchange.withdrawAll({from: ownerOfExchange})
+      let endAssetBalanceOwner = await asset.balanceOf(ownerOfExchange)
+      let endBasisBalanceOwner = await basis.balanceOf(ownerOfExchange)
+      let endBasisBalanceExchangeAddress = await basis.balanceOf(exchange.address)
+      let endAssetBalanceExchangeAddress = await asset.balanceOf(exchange.address)
+      assert.equal(endBasisBalanceExchangeAddress.toNumber(), 0)
+      assert.equal(endAssetBalanceExchangeAddress.toNumber(), 0)
+      assert.equal(endBasisBalanceOwner.sub(startBasisBalanceOwner).toNumber(), startBasisBalanceExchangeAddress)
+      assert.equal(endAssetBalanceOwner.sub(startAssetBalanceOwner).toNumber(), startAssetBalanceExchangeAddress)
+      
       assert.ok(true)
     })
 })
