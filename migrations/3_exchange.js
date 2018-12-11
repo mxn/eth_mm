@@ -13,6 +13,6 @@ module.exports = function(deployer, network) {
   deployer.deploy(ExchangeCalculator)
     .then(exchangeCalculatorInstance =>
      deployer.deploy(MockExchange, MockTokenBasis.address, 
-        200, MockTokenAsset.address, 10, 100, 
+        10, MockTokenAsset.address, 10, 100, 
         exchangeCalculatorInstance.address, getTestExpirationDate() ))
 }
