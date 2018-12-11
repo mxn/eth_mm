@@ -1,5 +1,6 @@
 pragma solidity ^0.4.23;
 
+import './ExchangeShareToken.sol';
 import './IExchangeCalculator.sol';
 import './WithdrawableByOwnerTimeLocked.sol';
 
@@ -15,6 +16,8 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
     using SafeERC20 for ERC20;
 
     uint32 private constant MAX_WEIGHT = 1000000;
+
+    uint public constant INITIAL_SHARE_AMOUNT = 10 ** 18;
     
     
     // calculatePurchaseReturn(uint256 _supply, uint256 _connectorBalance, uint32 _connectorWeight, uint256 _depositAmount) public view returns (uint256);
@@ -29,7 +32,8 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
     IExchangeCalculator public exchangeCalculator;
     uint public collectedFeesInBasis; 
 
-    
+    //ExchangeShareToken
+    ExchangeShareToken shareToken;
 
     
     constructor (address _basis, uint32 _weightBasis, address _asset, uint32 _weightAsset, uint32 _fractionInBpp, address _exchangeCalculator, uint _releaseTime) public
@@ -42,6 +46,7 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
         weightAsset = _weightAsset;
         fractionInBpp = _fractionInBpp;
         exchangeCalculator = IExchangeCalculator(_exchangeCalculator);
+        shareToken = new ExchangeShareToken();
     }
 
     function getBasisAmountToGet(uint _assetAmountToSell) public view returns(uint) {
@@ -100,6 +105,14 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
         basis.safeTransferFrom(msg.sender, this, calcBasisAmount);
         asset.safeTransfer(msg.sender, _assetAmountToGet);
         collectedFeesInBasis = collectedFeesInBasis.add(fee);
+    }
+
+    function initMM(uint basisAmount, uint assetAmount) {
+        require(basisAmount > 0 && assetAmount > 0, "amounts should be more than 0");
+        require(shareToken.totalSupply() == 0, "total supply should be 0");
+        basis.safeTransferFrom(msg.sender, this, basisAmount);
+        asset.safeTransferFrom(msg.sender, this, assetAmount);
+        shareToken.mint(msg.sender, INITIAL_SHARE_AMOUNT);
     }
 
 }
