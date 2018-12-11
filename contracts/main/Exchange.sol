@@ -83,6 +83,10 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
         return basis.balanceOf(this).sub(collectedFeesInBasis);
     }
     
+    function getExchangeAssetBalance() public view returns (uint) {
+        return asset.balanceOf(this);
+    }
+
     function sellAsset(uint _assetAmountToPut, uint _minBasisAmountToGet) public {
         uint basisAmount;
         uint fee;
@@ -115,5 +119,25 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
         shareToken.mint(msg.sender, INITIAL_SHARE_AMOUNT);
     }
 
+    function getShareTokenAmount(uint basisAmount, uint assetAmount) public view returns(uint) {
+        uint shareFromBasis;
+        uint shareFromAsset;
+        uint shareTokenTotalSupply = shareToken.totalSupply();
+        shareFromBasis = basisAmount.mul(shareTokenTotalSupply).div(getExchangeBasisBalance()).div(2);  
+        shareFromAsset = assetAmount.mul(shareTokenTotalSupply).div(getExchangeAssetBalance()).div(2);
+        return shareFromBasis.add(shareFromAsset);
+        
+    }
+
+    function supplyLiquidity(uint basisAmount, uint assetAmount) public {
+        require(basisAmount > 0 || assetAmount > 0, "amounts should be more than 0");
+        if (basisAmount > 0) {
+            basis.safeTransferFrom(msg.sender, this, basisAmount);
+        }
+        if (assetAmount > 0) {
+            asset.safeTransferFrom(msg.sender, this, assetAmount);
+        }
+        shareToken.mint(msg.sender, getShareTokenAmount(basisAmount, assetAmount));
+    }
 
 }
