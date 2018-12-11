@@ -33,7 +33,7 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
     uint public collectedFeesInBasis; 
 
     //ExchangeShareToken
-    ExchangeShareToken shareToken;
+    ExchangeShareToken public shareToken;
 
     
     constructor (address _basis, uint32 _weightBasis, address _asset, uint32 _weightAsset, uint32 _fractionInBpp, address _exchangeCalculator, uint _releaseTime) public
@@ -66,12 +66,12 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
     function getBasisAmountAndFee(uint _assetAmount, bool _putAsset) public view returns (uint, uint) {
         uint basisAmount;
         if (_putAsset) {
-            basisAmount = exchangeCalculator.calculateBasisAmountToGet(asset.balanceOf(this), weightAsset,
-            getExchangeBasisBalance(), weightBasis, 
+            basisAmount = exchangeCalculator.calculateBasisAmountToGet(
+            getExchangeBasisBalance(), weightBasis, asset.balanceOf(this), weightAsset, 
             _assetAmount);
         } else {
-            basisAmount = exchangeCalculator.calculateBasisAmountToPut(asset.balanceOf(this), weightAsset,
-            getExchangeBasisBalance(), weightBasis, 
+            basisAmount = exchangeCalculator.calculateBasisAmountToPut(
+                getExchangeBasisBalance(), weightBasis, asset.balanceOf(this), weightAsset,
             _assetAmount);
         }
         uint fee = basisAmount.mul(fractionInBpp).div(MAX_BPP);
