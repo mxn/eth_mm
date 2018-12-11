@@ -107,12 +107,13 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
         collectedFeesInBasis = collectedFeesInBasis.add(fee);
     }
 
-    function initMM(uint basisAmount, uint assetAmount) {
+    function initMM(uint basisAmount, uint assetAmount) public  {
         require(basisAmount > 0 && assetAmount > 0, "amounts should be more than 0");
         require(shareToken.totalSupply() == 0, "total supply should be 0");
         basis.safeTransferFrom(msg.sender, this, basisAmount);
         asset.safeTransferFrom(msg.sender, this, assetAmount);
         shareToken.mint(msg.sender, INITIAL_SHARE_AMOUNT);
     }
+
 
 }

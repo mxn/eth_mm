@@ -3,6 +3,7 @@ const MockTokenBasis = artifacts.require('MockTokenBasis')
 const MockTokenAsset = artifacts.require('MockTokenAsset')
 const Exchange = artifacts.require('MockExchange')
 const ExchangeCalculator = artifacts.require('ExchangeCalculator')
+const ExchangeShareToken = artifacts.require('ExchangeShareToken')
 
 
 
@@ -26,11 +27,12 @@ if (typeof web3 !== 'undefined') {
   console.log('web3 is not defined');
 }
 
+var exchange, asset, basis, exchangeCalculator
+
 contract ("Tokens:", async  () =>  {
   const transferAmountAsset = 100000
   const transferAmountBasis = 1000000
-  var exchange, asset, basis, exchangeCalculator
-
+  
   it("contracts should be correctly initialized", async () => {
     asset = await MockTokenAsset.deployed()
     exchange = await Exchange.deployed()
@@ -202,4 +204,38 @@ contract ("Tokens:", async  () =>  {
       
       assert.ok(true)
     })
+})
+
+contract("Money Maker", async () => {
+  
+  const initialPrice = 47
+  const assetAmount = 10000
+  const basisAmount = assetAmount * initialPrice
+  
+  it ("should be correctly initialized", async() => {
+    
+    
+    await basis.approve(exchange.address, 10**9)
+    await asset.approve(exchange.address, 10**9)
+    let shareToken = ExchangeShareToken.at(await exchange.shareToken())
+    let startBalanceShare = await shareToken.balanceOf(deployer)
+    assert.equal(startBalanceShare.toNumber(), 0, "initial startBalanceShare should be 0")
+    await exchange.initMM(basisAmount, assetAmount, {from: deployer})
+    let endBalanceShare = await shareToken.balanceOf(deployer)
+    let endBalanceAsset = await asset.balanceOf(exchange.address)
+    let endBalanceBasis = await basis.balanceOf(exchange.address)
+    console.log("endBalance asset", endBalanceAsset.toNumber())
+    console.log("endBalance basis", endBalanceBasis.toNumber())
+    assert.equal(endBalanceShare.sub(startBalanceShare).toNumber(), 
+      (await exchange.INITIAL_SHARE_AMOUNT()).toNumber())
+    
+  })
+  
+  it ("the price should be approximately equal initial price ", async() => {
+    let amountToSell = 100
+    let basisToGetCalc = await exchangeCalculator.calculateBasisAmountToGet(47 * 10000, 10, 
+      10000, 10, amountToSell);
+    let assetAmount = await exchange.getBasisAmountToGet(amountToSell)
+    assert.ok(assetAmount.toNumber() < 4800 && assetAmount.toNumber() > 4600)
+  })
 })
