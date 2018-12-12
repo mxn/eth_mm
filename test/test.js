@@ -9,6 +9,7 @@ const ExchangeShareToken = artifacts.require('ExchangeShareToken')
 
 const deployer = '0x627306090abab3a6e1400e9345bc60c78a8bef57'
 const trader = '0xf17f52151ebef6c7334fad080c5704d77216b732'
+const moneyMaker1 = '0xf17f52151ebef6c7334fad080c5704d77216b732'
 /* const writer1 = '0xf17f52151ebef6c7334fad080c5704d77216b732'
 const buyer2 = '0xc5fdf4076b8f3a5357c5e395ab970b5b54098fef'
 const optionSerieCreator = '0x0d1d4e623d10f9fba5db95830f7d3839406c6af2'
@@ -27,7 +28,20 @@ if (typeof web3 !== 'undefined') {
   console.log('web3 is not defined');
 }
 
-var exchange, asset, basis, exchangeCalculator
+var exchange, asset, basis, exchangeCalculator, shareToken
+/**
+ *  basis, asset and shareTokenBalances
+ */
+
+const getBalances = async (addr) => {
+  return Promise.all([basis, asset, shareToken].map(tokenObj => {
+    if (tokenObj) {
+      return tokenObj.balanceOf(addr)
+    } else {
+      return null
+    }
+  }))
+}
 
 contract ("Tokens:", async  () =>  {
   const transferAmountAsset = 100000
@@ -211,13 +225,17 @@ contract("Money Maker", async () => {
   const initialPrice = 47
   const assetAmount = 10000
   const basisAmount = assetAmount * initialPrice
+  const transferAmountBasis = 100 * 10000
+  const transferAmountAsset = 10000
+  
+
   
   it ("should be correctly initialized", async() => {
     
     
     await basis.approve(exchange.address, 10**9)
     await asset.approve(exchange.address, 10**9)
-    let shareToken = ExchangeShareToken.at(await exchange.shareToken())
+    shareToken = ExchangeShareToken.at(await exchange.shareToken())
     let startBalanceShare = await shareToken.balanceOf(deployer)
     assert.equal(startBalanceShare.toNumber(), 0, "initial startBalanceShare should be 0")
     await exchange.initMM(basisAmount, assetAmount, {from: deployer})
@@ -231,11 +249,50 @@ contract("Money Maker", async () => {
     
   })
   
-  it ("the price should be approximately equal initial price ", async() => {
+  it ("the price should be approximately equal initial price ", async () => {
     let amountToSell = 100
     let basisToGetCalc = await exchangeCalculator.calculateBasisAmountToGet(47 * 10000, 10, 
       10000, 10, amountToSell);
-    let assetAmount = await exchange.getBasisAmountToGet(amountToSell)
-    assert.ok(assetAmount.toNumber() < 4800 && assetAmount.toNumber() > 4600)
+    let basisAmountToGet = await exchange.getBasisAmountToGet(amountToSell)
+    assert.ok(basisToGetCalc.toNumber() < 4800 && basisToGetCalc.toNumber() > 4600)
+    assert.ok(basisAmountToGet.toNumber() < 4800 && basisAmountToGet.toNumber() > 4600)
   })
+
+  it ("transfer basis to moneyMaker1 should be OK", async  () => {
+    await basis.transfer(moneyMaker1, transferAmountBasis, {from: deployer})
+    let balance = await basis.balanceOf(moneyMaker1)
+    assert.equal(transferAmountBasis, balance.toNumber())
+  
+  })
+
+  it ("transfer asset to moneyMaker1 should be OK", async  () => {
+    await asset.transfer(moneyMaker1, transferAmountAsset, {from: deployer})
+    let balance = await asset.balanceOf(moneyMaker1)
+    assert.equal(transferAmountAsset, balance.toNumber())
+  })
+  
+  it ("supply liquidity should run", async () => {
+    let assetAmountToPut = 1000
+    let shareAmount = await exchange.getShareTokenAmount(basisAmount, assetAmount)
+    assert.equal(shareAmount.toNumber(), 10 ** 18, "should be the same as by initiator")
+    await basis.approve(exchange.address, 10 ** 18, {from: moneyMaker1})
+    await asset.approve(exchange.address, 10 ** 18, {from: moneyMaker1})
+    
+    let basisAmountToPut = await exchange.getBasisAmountToGet(assetAmountToPut)
+    var startBalanceBasis, startBalanceAsset, startBalanceShare, endBalanceBasis, endBalanceAsset, endBalanceShare
+    
+    [startBalanceBasis, startBalanceAsset, startBalanceShare] = await getBalances(moneyMaker1)
+    
+    await exchange.supplyLiquidity(basisAmountToPut, assetAmountToPut, {from: moneyMaker1});
+   
+    [endBalanceBasis, endBalanceAsset, endBalanceShare] = await getBalances(moneyMaker1)
+    assert.equal(startBalanceBasis.sub(endBalanceBasis).toNumber(), basisAmountToPut)
+    assert.equal(startBalanceAsset.sub(endBalanceAsset).toNumber(), assetAmountToPut)
+    
+    let gotShares = endBalanceShare.sub(startBalanceShare).toNumber()
+    assert.ok(gotShares > 0.9 * 10**9)
+  })
+
+
+
 })
