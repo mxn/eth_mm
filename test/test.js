@@ -43,6 +43,11 @@ const getBalances = async (addr) => {
   }))
 }
 
+const approxEq = (actualVal, expectedVal, tolerance) => {
+  delta = tolerance || 0.1
+  return (actualVal > (1 - delta) * expectedVal && actualVal < (1 + delta) * expectedVal)
+}
+
 contract ("Tokens:", async  () =>  {
   const transferAmountAsset = 100000
   const transferAmountBasis = 1000000
@@ -289,8 +294,15 @@ contract("Money Maker", async () => {
     assert.equal(startBalanceBasis.sub(endBalanceBasis).toNumber(), basisAmountToPut)
     assert.equal(startBalanceAsset.sub(endBalanceAsset).toNumber(), assetAmountToPut)
     
-    let gotShares = endBalanceShare.sub(startBalanceShare).toNumber()
-    assert.ok(gotShares > 0.9 * 10**9)
+    var basisForShares, assetForShares, gotShares
+    gotShares = endBalanceShare.sub(startBalanceShare).toNumber();
+    
+    [basisForShares, assetForShares] = await exchange.getBasisAssetAmount(gotShares);
+
+    assert.ok(approxEq(basisForShares, basisAmountToPut))
+    assert.ok(approxEq(assetForShares, assetAmountToPut))
+
+    
   })
 
 

@@ -126,7 +126,13 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
         shareFromBasis = basisAmount.mul(shareTokenTotalSupply).div(getExchangeBasisBalance()).div(2);  
         shareFromAsset = assetAmount.mul(shareTokenTotalSupply).div(getExchangeAssetBalance()).div(2);
         return shareFromBasis.add(shareFromAsset);
-        
+    }
+
+    function getBasisAssetAmount(uint shareAmount) public view returns(uint, uint) {
+        uint shareTokenTotalSupply = shareToken.totalSupply();
+        uint basisAmount = getExchangeBasisBalance().mul(shareAmount).div(shareTokenTotalSupply);
+        uint assetAmount = getExchangeAssetBalance().mul(shareAmount).div(shareTokenTotalSupply);
+        return (basisAmount, assetAmount);
     }
 
     function supplyLiquidity(uint basisAmount, uint assetAmount) public {
