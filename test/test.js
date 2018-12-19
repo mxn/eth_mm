@@ -185,43 +185,7 @@ contract ("Tokens:", async  () =>  {
     console.log("fee collected", collectedFee.toNumber())
   })
 
-  it ("cannot withdraw before expire date", async () => {
-    let ownerOfExchange = await exchange.owner()
-    assert.equal(ownerOfExchange, deployer) 
-    let lockExpireTime = await exchange.lockExpireTime()
-    let curTime = await exchange.getCurrentTime()
-    assert.isBelow(curTime.toNumber(), lockExpireTime.toNumber())
-    try {
-      await exchange.withdrawAll({from: ownerOfExchange})
-      assert.ok(false)
-    } catch (e) {
-      //NOP
-      assert.ok(true)
-    }
-  })
-
-    it ("can withdraw after expire date", async () => {
-      let ownerOfExchange = await exchange.owner()
-      assert.equal(ownerOfExchange, deployer) 
-      let releaseDate = await exchange.lockExpireTime()
-      let mockedCurTime = releaseDate.toNumber() + 1
-      await exchange.setCurrentTime(mockedCurTime)
-      let startAssetBalanceOwner = await asset.balanceOf(ownerOfExchange)
-      let startBasisBalanceOwner = await basis.balanceOf(ownerOfExchange)
-      let startBasisBalanceExchangeAddress = await basis.balanceOf(exchange.address)
-      let startAssetBalanceExchangeAddress = await asset.balanceOf(exchange.address)
-      await exchange.withdrawAll({from: ownerOfExchange})
-      let endAssetBalanceOwner = await asset.balanceOf(ownerOfExchange)
-      let endBasisBalanceOwner = await basis.balanceOf(ownerOfExchange)
-      let endBasisBalanceExchangeAddress = await basis.balanceOf(exchange.address)
-      let endAssetBalanceExchangeAddress = await asset.balanceOf(exchange.address)
-      assert.equal(endBasisBalanceExchangeAddress.toNumber(), 0)
-      assert.equal(endAssetBalanceExchangeAddress.toNumber(), 0)
-      assert.equal(endBasisBalanceOwner.sub(startBasisBalanceOwner).toNumber(), startBasisBalanceExchangeAddress)
-      assert.equal(endAssetBalanceOwner.sub(startAssetBalanceOwner).toNumber(), startAssetBalanceExchangeAddress)
-      
-      assert.ok(true)
-    })
+  
 })
 
 contract("Money Maker", async () => {
@@ -303,6 +267,86 @@ contract("Money Maker", async () => {
 
     assert.ok(approxEq(basisForShares, basisAmountToPut, 0.01))
     assert.ok(approxEq(assetForShares, assetAmountToPut, 0.01))
+  })
+
+  it ("cannot withdraw before expire date", async () => {
+    let ownerOfExchange = await exchange.owner()
+    assert.equal(ownerOfExchange, deployer) 
+    let lockExpireTime = await exchange.lockExpireTime()
+    let curTime = await exchange.getCurrentTime()
+    assert.isBelow(curTime.toNumber(), lockExpireTime.toNumber())
+    await shareToken.approve(exchange.address, 2 ** 255, {from: ownerOfExchange})
+    try {
+      await exchange.withdrawAll({from: ownerOfExchange})
+      assert.ok(false)
+    } catch (e) {
+      //NOP
+      assert.ok(true)
+    }
+  })
+
+  it ("can withdraw after expire date", async () => {
+    let ownerOfExchange = await exchange.owner()
+    assert.equal(ownerOfExchange, deployer) 
+    let releaseDate = await exchange.lockExpireTime()
+    let mockedCurTime = releaseDate.toNumber() + 1
+    await exchange.setCurrentTime(mockedCurTime)
+    let startShareBalanceOwner = await shareToken.balanceOf(ownerOfExchange)
+    let startShareBalanceMoneyMaker1 = await shareToken.balanceOf(moneyMaker1)
+
+    let startAssetBalanceOwner = await asset.balanceOf(ownerOfExchange)
+    let startBasisBalanceOwner = await basis.balanceOf(ownerOfExchange)
+    let startAssetBalanceMoneyMaker1 = await asset.balanceOf(moneyMaker1)
+    let startBasisBalanceMoneyMaker1 = await basis.balanceOf(moneyMaker1)
+    let startBasisBalanceExchangeAddress = await basis.balanceOf(exchange.address)
+    let startAssetBalanceExchangeAddress = await asset.balanceOf(exchange.address)
+    await shareToken.approve(exchange.address, 2 ** 255, {from: ownerOfExchange})
+    await exchange.withdrawAll({from: ownerOfExchange})
+
+    await shareToken.approve(exchange.address, 2 ** 255, {from: moneyMaker1})
+    await exchange.withdrawAll({from: moneyMaker1})
+
+    let endAssetBalanceOwner = await asset.balanceOf(ownerOfExchange)
+    let endBasisBalanceOwner = await basis.balanceOf(ownerOfExchange)
+    let endAssetBalanceMoneyMaker1 = await asset.balanceOf(moneyMaker1)
+    let endBasisBalanceMoneyMaker1 = await basis.balanceOf(moneyMaker1)
+    let endBasisBalanceExchangeAddress = await basis.balanceOf(exchange.address)
+    let endAssetBalanceExchangeAddress = await asset.balanceOf(exchange.address)
+    
+    assert.equal(endBasisBalanceExchangeAddress.toNumber(), 0)
+    assert.equal(endAssetBalanceExchangeAddress.toNumber(), 0)
+
+    assert.equal(endAssetBalanceMoneyMaker1.sub(startAssetBalanceMoneyMaker1)
+      .add(endAssetBalanceOwner.sub(startAssetBalanceOwner)).toNumber(),
+      startAssetBalanceExchangeAddress.sub(endAssetBalanceExchangeAddress).toNumber()
+    )
+
+    assert.equal(endBasisBalanceMoneyMaker1.sub(startBasisBalanceMoneyMaker1)
+      .add(endBasisBalanceOwner.sub(startBasisBalanceOwner)).toNumber(),
+      startBasisBalanceExchangeAddress.sub(endBasisBalanceExchangeAddress).toNumber()
+    )
+    let deltaBasisOwner = endBasisBalanceOwner.sub(startBasisBalanceOwner)
+    let deltaAssetOwner = endAssetBalanceOwner.sub(startAssetBalanceOwner)
+
+    let deltaBasisMoneyMaker1 = endBasisBalanceMoneyMaker1.sub(startBasisBalanceMoneyMaker1)
+    let deltaAssetMoneyMaker1 = endAssetBalanceMoneyMaker1.sub(startAssetBalanceMoneyMaker1)
+    
+    assert.ok(deltaBasisOwner.toNumber() > 0)
+    assert.ok(deltaAssetOwner.toNumber() > 0)
+    assert.ok(deltaBasisMoneyMaker1.toNumber() > 0)
+    assert.ok(deltaAssetMoneyMaker1.toNumber() > 0)
+    let ownerToMm1ShareRatio = startShareBalanceOwner.toNumber() / startShareBalanceMoneyMaker1.toNumber()
+    assert.ok(approxEq(deltaAssetOwner.toNumber() / deltaAssetMoneyMaker1.toNumber(), ownerToMm1ShareRatio, 1e-2))
+    console.log("ratios basis", deltaBasisOwner.toNumber() / deltaBasisMoneyMaker1.toNumber(), ownerToMm1ShareRatio)
+    console.log("ratios assets", deltaAssetOwner.toNumber() / deltaAssetMoneyMaker1.toNumber(), ownerToMm1ShareRatio)
+    
+    console.log("owner basis increase", deltaBasisOwner.toNumber())
+    console.log("mm1 basis increase", deltaBasisMoneyMaker1.toNumber())
+    console.log("owner asset increase", deltaAssetOwner.toNumber())
+    console.log("mm1 asset increase", deltaAssetMoneyMaker1.toNumber())
+    console.log("ratio owner to mm1", startShareBalanceOwner.toNumber() / startShareBalanceMoneyMaker1)
+    
+    assert.ok(true)
   })
 
 

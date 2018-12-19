@@ -14,27 +14,32 @@ contract WithdrawBySharesTimeLocked {
     uint constant MAX_AMOUNT = 2**256 - 1;
     uint public lockExpireTime;
     ERC20[] lockedTokens;
-    ExchangeShareToken shareToken;
+    ExchangeShareToken public shareToken;
 
     modifier onlyAfterLockExpired () {
         require(getCurrentTime() > lockExpireTime);
         _;
     }
     
-    function WithdrawBySharesTimeLocked (address[] _tokens, address _shareToken) public {
-        shareToken = ExchangeShareToken(_shareToken);
+    function WithdrawBySharesTimeLocked (address[] _tokens, uint _lockExpireTime) public {
+        shareToken = new ExchangeShareToken();
         uint lenOfArray = _tokens.length;
         lockedTokens = new ERC20[](lenOfArray);
         for (uint i = 0; i < lenOfArray; i++) {
             lockedTokens[i] = ERC20(_tokens[i]);
         }
+        lockExpireTime = _lockExpireTime;
     }
 
     function getCurrentTime() public view returns (uint) { // to make  testing with tim setting possible
         return now;
     }
 
-    function transfer (uint _shareTokenAmount) public onlyAfterLockExpired {
+    function withdrawForShares (uint _shareTokenAmount) {
+        _withdrawForShares(_shareTokenAmount);
+    }
+
+    function _withdrawForShares (uint _shareTokenAmount) private onlyAfterLockExpired {
         uint totalShareSupply = shareToken.totalSupply();
         shareToken.safeTransferFrom(msg.sender, this, _shareTokenAmount);
         for (uint i = 0; i < lockedTokens.length; i++) {
@@ -43,6 +48,10 @@ contract WithdrawBySharesTimeLocked {
             token.transfer(msg.sender, claimedTokenAmount);
         }
         shareToken.burn(_shareTokenAmount);
+    }
+
+    function withdrawAll () public onlyAfterLockExpired {
+        _withdrawForShares(shareToken.balanceOf(msg.sender));
     }
 
 }

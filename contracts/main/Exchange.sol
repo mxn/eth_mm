@@ -2,7 +2,7 @@ pragma solidity ^0.4.23;
 
 import './ExchangeShareToken.sol';
 import './IExchangeCalculator.sol';
-import './WithdrawableByOwnerTimeLocked.sol';
+import './WithdrawBySharesTimeLocked.sol';
 
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
@@ -10,7 +10,7 @@ import 'zeppelin-solidity/contracts/token/ERC20/ERC20.sol';
 import "zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 
 
-contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
+contract Exchange is Ownable, BancorFormula, WithdrawBySharesTimeLocked {
     using SafeMath for uint;
     using SafeMath for uint32;
     using SafeERC20 for ERC20;
@@ -30,14 +30,13 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
 
     IExchangeCalculator public exchangeCalculator;
     
-    ExchangeShareToken public shareToken;
-
+    
     uint public releaseTime;
 
     
     constructor (address _basis, uint32 _weightBasis, address _asset, uint32 _weightAsset, uint32 _fractionInBpp, address _exchangeCalculator, uint _releaseTime) public
-    Ownable()
-    WithdrawableByOwnerTimeLocked(_basis, _asset, _releaseTime)
+    Ownable()  
+    WithdrawBySharesTimeLocked(getBasisAssetAddressArray(_basis, _asset), _releaseTime)
     {
         basis = ERC20(_basis);
         asset = ERC20(_asset);
@@ -45,8 +44,14 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
         weightAsset = _weightAsset;
         fractionInBpp = _fractionInBpp;
         exchangeCalculator = IExchangeCalculator(_exchangeCalculator);
-        shareToken = new ExchangeShareToken();
         releaseTime = _releaseTime;
+    }
+
+    function getBasisAssetAddressArray(address _basis, address _asset) private view returns(address[]) {
+        address[] memory result = new address[](2);
+        result[0] = _basis;
+        result[1] = _asset;
+        return result;
     }
 
     function getBasisAmountToGet(uint _assetAmountToSell) public view returns(uint) {
