@@ -28,11 +28,8 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
     uint32 public constant MAX_BPP = 10000;
     uint32 public fractionInBpp; //fraction in basis points: % of %
 
-    //WithdrawableByOwner public feeTaker;
     IExchangeCalculator public exchangeCalculator;
-    uint public collectedFeesInBasis; 
-
-    //ExchangeShareToken
+    
     ExchangeShareToken public shareToken;
 
     uint public releaseTime;
@@ -83,7 +80,7 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
     }
 
     function getExchangeBasisBalance() public view returns (uint) {
-        return basis.balanceOf(this).sub(collectedFeesInBasis);
+        return basis.balanceOf(this);
     }
     
     function getExchangeAssetBalance() public view returns (uint) {
@@ -99,7 +96,7 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
         require(calcBasisAmount >= _minBasisAmountToGet);
         asset.safeTransferFrom(msg.sender, this, _assetAmountToPut);
         basis.safeTransfer(msg.sender, calcBasisAmount);
-        collectedFeesInBasis = collectedFeesInBasis.add(fee);
+        basis.safeTransfer(owner, fee);
     }
     
     function buyAsset(uint _assetAmountToGet, uint _maxBasisAmountToPut) public {
@@ -111,7 +108,7 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
         require(calcBasisAmount <= _maxBasisAmountToPut);
         basis.safeTransferFrom(msg.sender, this, calcBasisAmount);
         asset.safeTransfer(msg.sender, _assetAmountToGet);
-        collectedFeesInBasis = collectedFeesInBasis.add(fee);
+        basis.safeTransfer(owner, fee);
     }
 
     function initMM(uint basisAmount, uint assetAmount) public  {

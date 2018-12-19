@@ -128,23 +128,26 @@ contract ("Tokens:", async  () =>  {
     let startBasisBalanceTrader = await basis.balanceOf(trader)
     let startBasisBalanceExchangeAddress = await basis.balanceOf(exchange.address)
     let startBasisBalanceExchange = await exchange.getExchangeBasisBalance()
-    let startFee = await exchange.collectedFeesInBasis()
-    
+    let startFee = await basis.balanceOf(await exchange.owner())
+    let startAssetBalanceExchangeAddress = await asset.balanceOf(exchange.address)
+
+
     await exchange.buyAsset(amountAssetToBuy, 100000000, {from: trader})
     let endAssetBalance = await asset.balanceOf(trader)
     let endBasisBalanceTrader = await basis.balanceOf(trader)
     let endBasisBalanceExchangeAddress = await basis.balanceOf(exchange.address)
-    let endBasisBalanceExchange = await exchange.getExchangeBasisBalance()
-    let endFee = await exchange.collectedFeesInBasis()
+    let endAssetBalanceExchangeAddress = await asset.balanceOf(exchange.address)
+
+    let endFee = await basis.balanceOf(await exchange.owner())
+    let collectedFee = endFee.sub(startFee)
     assert.equal(amountAssetToBuy, endAssetBalance.sub(startAssetBalance).toNumber(), 
       "amount asset to buy is equal to delta balances of trader")
+    assert.equal(amountAssetToBuy, startAssetBalanceExchangeAddress.sub(endAssetBalanceExchangeAddress).toNumber(), 
+      "amount asset to buy is equal to delta balances of exchange")
+   
     assert.equal(startBasisBalanceTrader.sub(endBasisBalanceTrader).toNumber(), 
-      endBasisBalanceExchangeAddress.sub(startBasisBalanceExchangeAddress).toNumber(), 
-      "income in basis for exchange is equal to outcome in basis of trader ")
-    assert.equal(endFee.sub(startFee).add(endBasisBalanceExchange.sub(startBasisBalanceExchange)).toNumber(), 
-      endBasisBalanceExchangeAddress.sub(startBasisBalanceExchangeAddress).toNumber(),
-      "change in contract exchange balance equals to fee + exchange balance"
-      )
+      endBasisBalanceExchangeAddress.sub(startBasisBalanceExchangeAddress).add(collectedFee).toNumber(), 
+      "income in basis for exchange is equal to outcome in basis of trader plus collected fees ")
   })
 
   it ("revert by sell asset if exchange price is less than limit price", async  () => {
@@ -166,24 +169,20 @@ contract ("Tokens:", async  () =>  {
     let startAssetBalance = await asset.balanceOf(trader)
     let startBasisBalanceTrader = await basis.balanceOf(trader)
     let startBasisBalanceExchangeAddress = await basis.balanceOf(exchange.address)
-    let startBasisBalanceExchange = await exchange.getExchangeBasisBalance()
-    let startFee = await exchange.collectedFeesInBasis()
-    
+    let startFee = await basis.balanceOf(await exchange.owner())
+   
     await exchange.sellAsset(amountAsset, 1, {from: trader})
     let endAssetBalance = await asset.balanceOf(trader)
     let endBasisBalanceTrader = await basis.balanceOf(trader)
     let endBasisBalanceExchangeAddress = await basis.balanceOf(exchange.address)
-    let endBasisBalanceExchange = await exchange.getExchangeBasisBalance()
-    let endFee = await exchange.collectedFeesInBasis()
+    let endFee = await basis.balanceOf(await exchange.owner())
+    let collectedFee = endFee.sub(startFee)
     assert.equal(amountAsset, startAssetBalance.sub(endAssetBalance).toNumber(), 
     "amount asset to sell is equal to delta balances of trader")
     assert.equal(endBasisBalanceTrader.sub(startBasisBalanceTrader).toNumber(), 
-    startBasisBalanceExchangeAddress.sub(endBasisBalanceExchangeAddress).toNumber(), 
+    startBasisBalanceExchangeAddress.sub(endBasisBalanceExchangeAddress).sub(collectedFee).toNumber(), 
     "outcome in basis for exchange is equal to income in basis of trader ")
-    assert.equal(startBasisBalanceExchange.sub(endBasisBalanceExchange).sub(endFee.sub(startFee)).toNumber(), 
-    startBasisBalanceExchangeAddress.sub(endBasisBalanceExchangeAddress).toNumber(),
-    "change in contract exchange balance equals to fee + exchange balance")
-    console.log("fee collected", endFee.toNumber())
+    console.log("fee collected", collectedFee.toNumber())
   })
 
   it ("cannot withdraw before expire date", async () => {
@@ -280,8 +279,8 @@ contract("Money Maker", async () => {
     let assetAmountToPut = 1000
     let shareAmount = await exchange.getShareTokenAmount(basisAmount, assetAmount)
     assert.equal(shareAmount.toNumber(), 10 ** 18, "should be the same as by initiator")
-    await basis.approve(exchange.address, 10 ** 18, {from: moneyMaker1})
-    await asset.approve(exchange.address, 10 ** 18, {from: moneyMaker1})
+    await basis.approve(exchange.address, 2 ** 255, {from: moneyMaker1})
+    await asset.approve(exchange.address, 2 ** 255, {from: moneyMaker1})
     
     let basisAmountToPut = await exchange.getBasisAmountToGet(assetAmountToPut)
     var startBalanceBasis, startBalanceAsset, startBalanceShare, endBalanceBasis, endBalanceAsset, endBalanceShare
@@ -304,8 +303,6 @@ contract("Money Maker", async () => {
 
     assert.ok(approxEq(basisForShares, basisAmountToPut, 0.01))
     assert.ok(approxEq(assetForShares, assetAmountToPut, 0.01))
-
-    
   })
 
 
