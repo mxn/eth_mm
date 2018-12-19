@@ -35,6 +35,8 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
     //ExchangeShareToken
     ExchangeShareToken public shareToken;
 
+    uint public releaseTime;
+
     
     constructor (address _basis, uint32 _weightBasis, address _asset, uint32 _weightAsset, uint32 _fractionInBpp, address _exchangeCalculator, uint _releaseTime) public
     Ownable()
@@ -47,6 +49,7 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
         fractionInBpp = _fractionInBpp;
         exchangeCalculator = IExchangeCalculator(_exchangeCalculator);
         shareToken = new ExchangeShareToken();
+        releaseTime = _releaseTime;
     }
 
     function getBasisAmountToGet(uint _assetAmountToSell) public view returns(uint) {
@@ -123,6 +126,7 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
         uint shareFromBasis;
         uint shareFromAsset;
         uint shareTokenTotalSupply = shareToken.totalSupply();
+        //TODO: incorrect calculation!!!
         shareFromBasis = basisAmount.mul(shareTokenTotalSupply).div(getExchangeBasisBalance()).div(2);  
         shareFromAsset = assetAmount.mul(shareTokenTotalSupply).div(getExchangeAssetBalance()).div(2);
         return shareFromBasis.add(shareFromAsset);
@@ -137,13 +141,14 @@ contract Exchange is Ownable, BancorFormula, WithdrawableByOwnerTimeLocked {
 
     function supplyLiquidity(uint basisAmount, uint assetAmount) public {
         require(basisAmount > 0 || assetAmount > 0, "amounts should be more than 0");
+        //we need mint first as the calculation of share token amount is based on pre- balance
+        shareToken.mint(msg.sender, getShareTokenAmount(basisAmount, assetAmount));
         if (basisAmount > 0) {
             basis.safeTransferFrom(msg.sender, this, basisAmount);
         }
         if (assetAmount > 0) {
             asset.safeTransferFrom(msg.sender, this, assetAmount);
         }
-        shareToken.mint(msg.sender, getShareTokenAmount(basisAmount, assetAmount));
     }
 
 }

@@ -298,9 +298,12 @@ contract("Money Maker", async () => {
     gotShares = endBalanceShare.sub(startBalanceShare).toNumber();
     
     [basisForShares, assetForShares] = await exchange.getBasisAssetAmount(gotShares);
+    console.log("basis", [basisForShares.toNumber(), basisAmountToPut.toNumber()])
+    console.log("asset", [assetForShares.toNumber(), assetAmountToPut])
+    console.log("gotShares",gotShares)
 
-    assert.ok(approxEq(basisForShares, basisAmountToPut))
-    assert.ok(approxEq(assetForShares, assetAmountToPut))
+    assert.ok(approxEq(basisForShares, basisAmountToPut, 0.01))
+    assert.ok(approxEq(assetForShares, assetAmountToPut, 0.01))
 
     
   })

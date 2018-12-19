@@ -23,7 +23,7 @@ contract WithdrawBySharesTimeLocked {
     
     function WithdrawBySharesTimeLocked (address[] _tokens, address _shareToken) public {
         shareToken = ExchangeShareToken(_shareToken);
-        uint lenOfArray = _tokens.length; //_tokens.length();
+        uint lenOfArray = _tokens.length;
         lockedTokens = new ERC20[](lenOfArray);
         for (uint i = 0; i < lenOfArray; i++) {
             lockedTokens[i] = ERC20(_tokens[i]);
